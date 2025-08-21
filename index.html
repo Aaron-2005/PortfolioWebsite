@@ -5,28 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portfolio - Your Name</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
 </head>
-<body class="bg-gray-50 text-gray-800">
-<div class="max-w-3xl mx-auto p-6">
-    <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">
-        About Me
-    </h1>
-    <p class="bg-white p-6 rounded-lg shadow leading-relaxed">
-        Motivated 2nd-year Software Engineering student at the University of Birmingham,
-        with a strong foundation in computer science and hands-on experience in both technical
-        and customer-facing roles. Skilled in high-performance computing, deep learning, data
-        analysis, and problem-solving. Demonstrated leadership in team-based projects and competitions,
-        including optimizing HPC applications and managing resources in a high-pressure environment.
-        Excellent organizational, communication, and teamwork abilities, complemented by practical
-        experience in retail and customer service, enhancing my adaptability and time management.
-    </p>
-</div>
-<h2 class="text-2xl font-semibold mt-8 mb-4">Skills</h2>
-<ul class="grid grid-cols-2 gap-3">
-    <li class="bg-blue-100 text-blue-800 px-3 py-2 rounded">Python</li>
-    <li class="bg-green-100 text-green-800 px-3 py-2 rounded">JavaScript</li>
-    <li class="bg-purple-100 text-purple-800 px-3 py-2 rounded">React</li>
-    <li class="bg-red-100 text-red-800 px-3 py-2 rounded">C++</li>
+<body class="relative dark:bg-gray-800">
+
+<button id="moveBtn" onclick="toggleDarkMode()"
+        class="fixed top-2 right-4 w-10 h-10 rounded-full bg-black dark:bg-white transition-all duration-500">
+        <img id="btnIcon" src="night.png" alt="icon" class="w-10 h-10 rounded-full">
+</button>
+
+<h1 class="text-5xl font-bold text-center dark:text-white">About Me</h1>
+<p class="dark:text-white">
+    Motivated 3rd-year Software Engineering student at the University of Birmingham,
+    with a strong foundation in computer science and hands-on experience in both technical
+    and customer-facing roles. Skilled in high-performance computing, deep learning, data
+    analysis, and problem-solving. Demonstrated leadership in team-based projects and competitions,
+    including optimizing HPC applications and managing resources in a high-pressure environment.
+    Excellent organizational, communication, and teamwork abilities, complemented by practical
+    experience in retail and customer service, enhancing my adaptability and time management.
+</p>
+
+<h2 class="dark:text-white text-5xl font-bold text-center">Skills</h2>
+<ul class="dark:text-white">
+    <li>Python</li>
+    <li>JavaScript</li>
+    <li>React</li>
+    <li>C++</li>
 </ul>
+
+<script>
+    function toggleDarkMode() {
+        document.documentElement.classList.toggle('dark')
+    }
+
+    const btn = document.getElementById('moveBtn');
+    const icon = document.getElementById('btnIcon');
+    let moved = false;
+
+    btn.addEventListener('click', () => {
+        if (!moved) {
+            btn.classList.replace('right-4', 'right-12');
+            icon.src = "sun.png";
+        } else {
+            btn.classList.replace('right-12', 'right-4');
+            icon.src = "night.png";
+        }
+        moved = !moved;
+    });
+</script>
 </body>
 </html>
