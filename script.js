@@ -6,26 +6,35 @@ function initSmoothScroll() {
       if (targetId && targetId.length > 1) {
         event.preventDefault();
         const target = document.querySelector(targetId);
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth' });
-        }
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
       }
     });
   });
 }
 
-// Reveal on scroll
+// Reveal on scroll (with fallback: show content even if observer not supported)
 function initRevealAnimations() {
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.15 });
+  const revealEls = Array.from(document.querySelectorAll('.reveal'));
 
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  // Fallback for older browsers or any weird env: just show everything
+  if (!('IntersectionObserver' in window)) {
+    revealEls.forEach(el => el.classList.add('visible'));
+    return null;
+  }
+
+  const observer = new IntersectionObserver(
+    entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.15 }
+  );
+
+  revealEls.forEach(el => observer.observe(el));
   return observer;
 }
 
@@ -41,7 +50,9 @@ const projectSkeletonCard = `
 `;
 
 function renderProjectSkeletons(container, count = 4) {
-  container.innerHTML = Array.from({ length: count }).map(() => projectSkeletonCard).join('');
+  container.innerHTML = Array.from({ length: count })
+    .map(() => projectSkeletonCard)
+    .join('');
 }
 
 function formatUpdatedLabel(dateString) {
@@ -54,15 +65,11 @@ function formatUpdatedLabel(dateString) {
 
 function buildLanguageList(primaryLanguage, languages = []) {
   const combined = [...languages];
-  if (primaryLanguage && !combined.includes(primaryLanguage)) {
-    combined.unshift(primaryLanguage);
-  }
+  if (primaryLanguage && !combined.includes(primaryLanguage)) combined.unshift(primaryLanguage);
 
   const unique = [];
   combined.forEach(item => {
-    if (item && !unique.includes(item)) {
-      unique.push(item);
-    }
+    if (item && !unique.includes(item)) unique.push(item);
   });
 
   return unique.slice(0, 6);
@@ -83,39 +90,39 @@ async function fetchLanguages(languagesUrl) {
   }
 }
 
-async function fetchRecentRepos(username, limit = 4) {
-  const url = `https://api.github.com/users/${username}/repos?sort=updated&per_page=${limit}&type=owner`;
+// Fetch more than you need, then filter down
+async function fetchRepos(username, perPage = 30) {
+  const url = `https://api.github.com/users/${username}/repos?sort=updated&per_page=${perPage}&type=owner`;
   const response = await fetch(url, {
     headers: { Accept: 'application/vnd.github+json' },
   });
 
-  if (!response.ok) {
-    throw new Error('Unable to fetch repos');
-  }
+  if (!response.ok) throw new Error('Unable to fetch repos');
 
   const repos = await response.json();
-  const trimmed = repos.filter(repo => !repo.archived && !repo.fork).slice(0, limit);
+  return repos.filter(repo => !repo.archived && !repo.fork);
+}
 
-  return Promise.all(trimmed.map(async repo => {
-    const languages = await fetchLanguages(repo.languages_url);
-    return {
-      name: repo.name,
-      owner: repo.owner?.login || username,
-      description: repo.description || 'No description available yet.',
-      language: repo.language,
-      updated_at: repo.updated_at || repo.pushed_at,
-      html_url: repo.html_url,
-      homepage: repo.homepage,
-      image: `https://opengraph.githubassets.com/1/${repo.owner?.login || username}/${repo.name}`,
-      languages: buildLanguageList(repo.language, languages),
-    };
-  }));
+async function enrichRepo(repo, username) {
+  const languages = await fetchLanguages(repo.languages_url);
+  return {
+    name: repo.name,
+    owner: repo.owner?.login || username,
+    description: repo.description || 'No description available yet.',
+    language: repo.language,
+    updated_at: repo.updated_at || repo.pushed_at,
+    html_url: repo.html_url,
+    homepage: repo.homepage,
+    image: `https://opengraph.githubassets.com/1/${repo.owner?.login || username}/${repo.name}`,
+    languages: buildLanguageList(repo.language, languages),
+  };
 }
 
 function createProjectCard(repo) {
   const card = document.createElement('div');
   card.classList.add('project-card', 'reveal');
-  const owner = repo.owner || 'tejjeenu';
+
+  const owner = repo.owner || 'Aaron-2005';
   const liveLink = repo.homepage && repo.homepage.trim() !== '' ? repo.homepage : null;
   const updatedLabel = formatUpdatedLabel(repo.updated_at);
   const previewImage = repo.image || `https://opengraph.githubassets.com/1/${owner}/${repo.name}`;
@@ -147,11 +154,38 @@ function createProjectCard(repo) {
 async function loadGitHubProjects(revealObserver) {
   const container = document.getElementById('projects-list');
   if (!container) return;
+
   renderProjectSkeletons(container, 4);
 
   try {
-    const username = 'tejjeenu';
-    const repos = await fetchRecentRepos(username, 4);
+    const username = 'Aaron-2005';
+
+    // 👇 Put your favourite repos here (exact names), in the order you want them shown.
+    // If you leave it empty, it will just show your 4 most recently updated repos.
+    const featured = [
+      // 'PortfolioWebsite',
+      // 'your-platformer-repo',
+      // 'your-hpc-repo',
+      // 'another-repo'
+    ];
+
+    const raw = await fetchRepos(username, 50);
+
+    let selected;
+    if (featured.length) {
+      const byName = new Map(raw.map(r => [r.name.toLowerCase(), r]));
+      selected = featured
+        .map(name => byName.get(String(name).toLowerCase()))
+        .filter(Boolean);
+    } else {
+      selected = raw.slice(0, 4);
+    }
+
+    // Limit to 4 cards
+    selected = selected.slice(0, 4);
+
+    // Enrich (languages, image, etc.)
+    const repos = await Promise.all(selected.map(repo => enrichRepo(repo, username)));
 
     if (!repos.length) {
       container.innerHTML = '<p class="muted">No projects to show right now.</p>';
@@ -162,9 +196,8 @@ async function loadGitHubProjects(revealObserver) {
     repos.forEach(repo => {
       const card = createProjectCard(repo);
       container.appendChild(card);
-      if (revealObserver) {
-        revealObserver.observe(card);
-      }
+      if (revealObserver) revealObserver.observe(card);
+      else card.classList.add('visible'); // fallback show
     });
   } catch (error) {
     container.innerHTML = `
