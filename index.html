@@ -1,56 +1,161 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio - Your Name</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = { darkMode: 'class' }
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aaron Abraham | Software Engineer</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 </head>
-<h1 class="text-7xl font-bold text-center dark:text-white">Aaron Abraham</h1>
-<div></div>
-<body class="relative dark:bg-gray-800">
+<body>
+<div class="page">
+  <nav class="navbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <span class="name">Aaron Abraham</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#experience">Experience</a></li>
+      <li><a href="#projects">Projects</a></li>
+      <li><a href="#skills">Skills</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a class="icon-btn" href="mailto:aaronjohan@icloud.com" aria-label="Email"><i class="bx bx-envelope"></i></a>
+      <a class="btn primary" href="#contact">Let's talk</a>
+    </div>
+  </nav>
 
-<button id="moveBtn" onclick="toggleDarkMode()"
-        class="fixed top-2 right-4 w-10 h-10 rounded-full bg-black dark:bg-white transition-all duration-500">
-        <img id="btnIcon" src="night.png" alt="icon" class="w-10 h-10 rounded-full">
-</button>
+  <header id="home" class="hero-section">
+    <div class="hero-copy reveal">
+      <p class="eyebrow">Software Engineering</p>
+      <h1>Building reliable, scalable software with clean design and strong fundamentals.</h1>
+      <p class="lede">👋 Hi, I'm Aaron — a Software Engineering student at the University of Birmingham with hands-on experience across backend systems, object-oriented programming, and real-world problem solving.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#projects">View projects</a>
+        <a class="btn ghost" href="mailto:aaronjohan@icloud.com">Email me</a>
+      </div>
+      <div class="meta">
+        <div class="meta-card">
+          <span class="label">Focus</span>
+          <p>Clean code, scalable systems, and user-focused software</p>
+        </div>
+        <div class="meta-card">
+          <span class="label">Currently</span>
+          <p>2nd-year Software Engineering student</p>
+        </div>
+      </div>
+    </div>
+  </header>
 
-<h1 class="text-5xl font-bold text-center dark:text-white">About Me</h1>
-<p class="dark:text-white">
-    Motivated 3rd-year Software Engineering student at the University of Birmingham,
-    with a strong foundation in computer science and hands-on experience in both technical
-    and customer-facing roles. Skilled in high-performance computing, deep learning, data
-    analysis, and problem-solving. Demonstrated leadership in team-based projects and competitions,
-    including optimizing HPC applications and managing resources in a high-pressure environment.
-    Excellent organizational, communication, and teamwork abilities, complemented by practical
-    experience in retail and customer service, enhancing my adaptability and time management.
-</p>
+  <section id="about" class="panel reveal">
+    <div class="section-heading">
+      <p class="eyebrow">About</p>
+      <h2>Software engineer with a strong foundation and a practical mindset.</h2>
+    </div>
+    <div class="panel-grid">
+      <p>I am a motivated Software Engineering student with a solid foundation in computer science principles, object-oriented programming, and problem-solving. I enjoy building systems that are reliable, readable, and easy to maintain.</p>
+      <p>Through university projects and hands-on experience, I have worked across backend development, data processing, and performance-focused computing. I am particularly interested in writing efficient code, designing clean architectures, and continuously improving software quality.</p>
+      <p>Alongside technical skills, I bring strong communication, teamwork, and leadership abilities developed through tutoring, retail roles, and competitive team challenges.</p>
+    </div>
+  </section>
 
-<h2 class="dark:text-white text-5xl font-bold text-center">Skills</h2>
+  <section id="experience" class="panel reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Experience</p>
+      <h2>Technical, teaching, and real-world experience</h2>
+    </div>
+    <div class="timeline">
+      <div class="timeline-entry">
+        <div class="timeline-date">Jan 2025 – Present</div>
+        <div class="timeline-card">
+          <h3>Tutor @ Kaiden Education</h3>
+          <p>Tutor GCSE AQA Mathematics SEN students, creating personalised lesson plans and adapting explanations to improve understanding and performance.</p>
+        </div>
+      </div>
+      <div class="timeline-entry">
+        <div class="timeline-date">Jan 2024 – Present</div>
+        <div class="timeline-card">
+          <h3>Retail Worker @ Budgens</h3>
+          <p>Developed strong organisational, time-management, and customer-service skills while working in a fast-paced environment.</p>
+        </div>
+      </div>
+      <div class="timeline-entry">
+        <div class="timeline-date">Aug 2021 – Mar 2022</div>
+        <div class="timeline-card">
+          <h3>Waiter @ Hogarth Stone Manor</h3>
+          <p>Built teamwork and adaptability skills while delivering high-quality service under pressure.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <section id="projects" class="panel reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Projects</p>
+      <h2>Selected software and technical projects</h2>
+    </div>
+    <div class="project-grid">
+      <div class="project-card">
+        <h3>2D Platformer Game</h3>
+        <p>Developed an endless 2D platformer using Python and Pygame, implementing physics, collision detection, and object-oriented design for clean, maintainable code.</p>
+      </div>
+      <div class="project-card">
+        <h3>HPC Optimisation Challenge</h3>
+        <p>Worked in a team to optimise high-performance computing workloads, improving cluster efficiency using Docker, Kubernetes, and auto-scaling techniques.</p>
+      </div>
+      <div class="project-card">
+        <h3>Accessible Transport App (University Project)</h3>
+        <p>Led system design for an accessibility-focused public transport app, researching user needs and translating them into practical software solutions.</p>
+      </div>
+    </div>
+  </section>
 
-<script>
-    function toggleDarkMode() {
-        document.documentElement.classList.toggle('dark')
-    }
+  <section id="skills" class="panel reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Skills</p>
+      <h2>Languages, tools, and strengths</h2>
+    </div>
+    <div class="skills-columns">
+      <div class="skill-group">
+        <p class="skill-label">Programming</p>
+        <div class="skills-grid">
+          <span class="skill-chip">Python</span>
+          <span class="skill-chip">Java</span>
+          <span class="skill-chip">C#</span>
+          <span class="skill-chip">JavaScript</span>
+          <span class="skill-chip">HTML & CSS</span>
+          <span class="skill-chip">SQL</span>
+        </div>
+      </div>
+      <div class="skill-group">
+        <p class="skill-label">Tools & Concepts</p>
+        <div class="skills-grid">
+          <span class="skill-chip">Object-Oriented Programming</span>
+          <span class="skill-chip">Git & Version Control</span>
+          <span class="skill-chip">Docker & Kubernetes</span>
+          <span class="skill-chip">High-Performance Computing</span>
+          <span class="skill-chip">Problem Solving</span>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    const btn = document.getElementById('moveBtn');
-    const icon = document.getElementById('btnIcon');
-    let moved = false;
-
-    btn.addEventListener('click', () => {
-        if (!moved) {
-            btn.classList.replace('right-4', 'right-12');
-            icon.src = "sun.png";
-        } else {
-            btn.classList.replace('right-12', 'right-4');
-            icon.src = "night.png";
-        }
-        moved = !moved;
-    });
-</script>
+  <section id="contact" class="panel contact-panel reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Contact</p>
+      <h2>Open to software engineering opportunities.</h2>
+    </div>
+    <div class="contact-card">
+      <p>Currently seeking internships and graduate software engineering roles.</p>
+      <div class="contact-actions">
+        <a class="btn primary" href="mailto:aaronjohan@icloud.com">Email</a>
+      </div>
+    </div>
+  </section>
+</div>
 </body>
 </html>
