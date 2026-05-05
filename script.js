@@ -36,120 +36,164 @@ function initRevealAnimations() {
 
 // ── Infinite Carousel ────────────────────────────────────────────────────────
 function initCarousel() {
-  const track     = document.getElementById('projects-list');
-  const viewport  = track?.closest('.carousel-viewport');
-  const wrapper   = track?.closest('.carousel-wrapper');
+  const track    = document.getElementById('projects-list');
+  const viewport = track?.closest('.carousel-viewport');
+  const wrapper  = track?.closest('.carousel-wrapper');
   if (!track || !viewport || !wrapper) return;
 
-  const VISIBLE   = 4;          // cards visible at once
-  const GAP       = 16;         // px — must match CSS gap
-  const DURATION  = 320;        // ms transition
+  const GAP      = 16;   // must match CSS gap
+  const DURATION = 320;  // ms
 
-  let isAnimating = false;
+  let currentIndex = 0;
+  let isAnimating  = false;
+  let autoplayTimer = null;
 
-  function cardWidth() {
-    return (viewport.offsetWidth - GAP * (VISIBLE - 1)) / VISIBLE;
+  // How many cards should be visible — mirrors CSS breakpoints exactly
+  function getVisible() {
+    const w = window.innerWidth;
+    if (w <= 540)  return 1;
+    if (w <= 900)  return 2;
+    return 4;
   }
 
-  function stepWidth() {
-    return cardWidth() + GAP;
+  // Measure the actual rendered width of one card slot
+  // We read it straight from the DOM so it always matches what CSS produces
+  function getStepWidth() {
+    const firstReal = track.querySelector('.project-card:not(.clone)');
+    if (!firstReal) return 0;
+    // offsetWidth + gap between cards
+    return firstReal.offsetWidth + GAP;
   }
 
-  // Clone enough cards for seamless looping
+  // Store original cards (once, before any clones are added)
+  let originals = null;
+
+  function getOriginals() {
+    if (!originals) {
+      originals = Array.from(track.querySelectorAll('.project-card:not(.clone)'));
+    }
+    return originals;
+  }
+
   function buildClones() {
-    // Remove old clones
+    // Remove existing clones
     track.querySelectorAll('.clone').forEach(c => c.remove());
 
-    const originals = Array.from(track.children);
-    const count     = originals.length;
+    const cards = getOriginals();
+    const count = cards.length;
     if (!count) return;
 
-    // Append VISIBLE clones of the start at the end, and of the end at the start
-    for (let i = 0; i < VISIBLE; i++) {
-      const head = originals[i % count].cloneNode(true);
-      head.classList.add('clone');
-      track.appendChild(head);
+    const visible = getVisible();
 
-      const tail = originals[count - 1 - (i % count)].cloneNode(true);
-      tail.classList.add('clone');
-      track.insertBefore(tail, track.firstChild);
+    // Add `visible` clones of the END before the first real card (prepend)
+    for (let i = visible - 1; i >= 0; i--) {
+      const clone = cards[((count - visible + i) % count + count) % count].cloneNode(true);
+      clone.classList.add('clone');
+      track.insertBefore(clone, track.firstChild);
+    }
+
+    // Add `visible` clones of the START after the last real card (append)
+    for (let i = 0; i < visible; i++) {
+      const clone = cards[i % count].cloneNode(true);
+      clone.classList.add('clone');
+      track.appendChild(clone);
     }
   }
 
-  // Jump to real start (after head clones) — no animation
-  function resetToStart(noTransition = true) {
-    if (noTransition) track.style.transition = 'none';
-    currentIndex = VISIBLE;
-    track.style.transform = `translateX(-${currentIndex * stepWidth()}px)`;
-    if (noTransition) {
-      // Force reflow so transition: none takes effect before re-enabling
-      void track.offsetWidth;
-      track.style.transition = '';
-    }
+  function setPosition(index, animate) {
+    track.style.transition = animate
+        ? `transform ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`
+        : 'none';
+    track.style.transform = `translateX(-${index * getStepWidth()}px)`;
+    if (!animate) void track.offsetWidth; // force reflow
   }
 
-  let currentIndex = VISIBLE; // start after head clones
-
-  function applyTransform(index, animate = true) {
-    track.style.transition = animate ? `transform ${DURATION}ms cubic-bezier(0.4,0,0.2,1)` : 'none';
-    track.style.transform  = `translateX(-${index * stepWidth()}px)`;
+  function resetPosition() {
+    currentIndex = getVisible(); // skip past the prepended clones
+    setPosition(currentIndex, false);
   }
 
-  function slide(direction) {
+  function slide(dir) {
     if (isAnimating) return;
     isAnimating = true;
 
-    currentIndex += direction;
-    applyTransform(currentIndex);
+    currentIndex += dir;
+    setPosition(currentIndex, true);
 
-    track.addEventListener('transitionend', function onEnd() {
-      track.removeEventListener('transitionend', onEnd);
+    // Use both transitionend and a fallback timeout in case the event misfires
+    let done = false;
+    function onDone() {
+      if (done) return;
+      done = true;
+      track.removeEventListener('transitionend', onDone);
 
-      const origCount = track.children.length - VISIBLE * 2;
+      const visible  = getVisible();
+      const realCount = getOriginals().length;
+      const totalWithClones = track.children.length;
 
-      // Jumped past real end → snap to real start
-      if (currentIndex >= origCount + VISIBLE) {
-        currentIndex = VISIBLE;
-        applyTransform(currentIndex, false);
+      // Snapped past the end? Jump back to the real start
+      if (currentIndex >= realCount + visible) {
+        currentIndex = visible;
+        setPosition(currentIndex, false);
       }
-      // Jumped before real start → snap to real end
-      if (currentIndex < VISIBLE) {
-        currentIndex = origCount + VISIBLE - 1;
-        applyTransform(currentIndex, false);
+
+      // Snapped before the start? Jump to the real end
+      if (currentIndex < visible) {
+        currentIndex = realCount + visible - 1;
+        setPosition(currentIndex, false);
       }
 
       isAnimating = false;
-    });
+    }
+
+    track.addEventListener('transitionend', onDone);
+    setTimeout(onDone, DURATION + 100); // fallback
   }
 
-  // Build clones, set initial position, wire buttons
+  function startAutoplay() {
+    stopAutoplay();
+    autoplayTimer = setInterval(() => slide(1), 5000);
+  }
+
+  function stopAutoplay() {
+    if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
   buildClones();
-  resetToStart();
+  resetPosition();
 
   wrapper.querySelector('.carousel-btn.prev')?.addEventListener('click', () => slide(-1));
   wrapper.querySelector('.carousel-btn.next')?.addEventListener('click', () => slide(1));
 
-  // Rebuild on resize
+  // Pause autoplay on hover/focus
+  wrapper.addEventListener('mouseenter', stopAutoplay);
+  wrapper.addEventListener('mouseleave', startAutoplay);
+  wrapper.addEventListener('focusin',    stopAutoplay);
+  wrapper.addEventListener('focusout',   startAutoplay);
+
+  startAutoplay();
+
+  // Touch / swipe
+  let touchStartX = 0;
+  viewport.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    stopAutoplay();
+  }, { passive: true });
+  viewport.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) slide(diff > 0 ? 1 : -1);
+    startAutoplay();
+  });
+
+  // Rebuild on resize (debounced)
   let resizeTimer;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       buildClones();
-      resetToStart();
+      resetPosition();
     }, 200);
-  });
-
-  // Auto-advance every 5 s
-  let autoplay = setInterval(() => slide(1), 5000);
-  wrapper.addEventListener('mouseenter', () => clearInterval(autoplay));
-  wrapper.addEventListener('mouseleave', () => { autoplay = setInterval(() => slide(1), 5000); });
-
-  // Touch / swipe support
-  let touchStartX = 0;
-  viewport.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
-  viewport.addEventListener('touchend', e => {
-    const diff = touchStartX - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 40) slide(diff > 0 ? 1 : -1);
   });
 }
 
@@ -238,11 +282,5 @@ function createProjectCard(repo) {
 window.addEventListener('DOMContentLoaded', () => {
   initSmoothScroll();
   initRevealAnimations();
-
-  // Carousel initialises on the static cards already in the DOM,
-  // then optionally enriches with live GitHub data.
   initCarousel();
-
-  // Optionally refresh cards from GitHub (uncomment + fill featured list to use)
-  // loadGitHubProjects();
 });
