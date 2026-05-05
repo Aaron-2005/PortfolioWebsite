@@ -1,4 +1,4 @@
-// Smooth scroll for anchor links
+// ── Smooth scroll ────────────────────────────────────────────────────────────
 function initSmoothScroll() {
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', event => {
@@ -12,93 +12,178 @@ function initSmoothScroll() {
   });
 }
 
-// Reveal on scroll (with fallback: show content even if observer not supported)
+// ── Reveal on scroll ─────────────────────────────────────────────────────────
 function initRevealAnimations() {
   const revealEls = Array.from(document.querySelectorAll('.reveal'));
-
-  // Fallback for older browsers or any weird env: just show everything
   if (!('IntersectionObserver' in window)) {
     revealEls.forEach(el => el.classList.add('visible'));
     return null;
   }
-
   const observer = new IntersectionObserver(
-    entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.15 }
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15 }
   );
-
   revealEls.forEach(el => observer.observe(el));
   return observer;
 }
 
-const projectSkeletonCard = `
-  <div class="project-card skeleton">
-    <div class="project-media"></div>
-    <div class="project-content">
-      <div class="line title"></div>
-      <div class="line"></div>
-      <div class="line short"></div>
-    </div>
-  </div>
-`;
+// ── Infinite Carousel ────────────────────────────────────────────────────────
+function initCarousel() {
+  const track     = document.getElementById('projects-list');
+  const viewport  = track?.closest('.carousel-viewport');
+  const wrapper   = track?.closest('.carousel-wrapper');
+  if (!track || !viewport || !wrapper) return;
 
-function renderProjectSkeletons(container, count = 4) {
-  container.innerHTML = Array.from({ length: count })
-    .map(() => projectSkeletonCard)
-    .join('');
+  const VISIBLE   = 4;          // cards visible at once
+  const GAP       = 16;         // px — must match CSS gap
+  const DURATION  = 320;        // ms transition
+
+  let isAnimating = false;
+
+  function cardWidth() {
+    return (viewport.offsetWidth - GAP * (VISIBLE - 1)) / VISIBLE;
+  }
+
+  function stepWidth() {
+    return cardWidth() + GAP;
+  }
+
+  // Clone enough cards for seamless looping
+  function buildClones() {
+    // Remove old clones
+    track.querySelectorAll('.clone').forEach(c => c.remove());
+
+    const originals = Array.from(track.children);
+    const count     = originals.length;
+    if (!count) return;
+
+    // Append VISIBLE clones of the start at the end, and of the end at the start
+    for (let i = 0; i < VISIBLE; i++) {
+      const head = originals[i % count].cloneNode(true);
+      head.classList.add('clone');
+      track.appendChild(head);
+
+      const tail = originals[count - 1 - (i % count)].cloneNode(true);
+      tail.classList.add('clone');
+      track.insertBefore(tail, track.firstChild);
+    }
+  }
+
+  // Jump to real start (after head clones) — no animation
+  function resetToStart(noTransition = true) {
+    if (noTransition) track.style.transition = 'none';
+    currentIndex = VISIBLE;
+    track.style.transform = `translateX(-${currentIndex * stepWidth()}px)`;
+    if (noTransition) {
+      // Force reflow so transition: none takes effect before re-enabling
+      void track.offsetWidth;
+      track.style.transition = '';
+    }
+  }
+
+  let currentIndex = VISIBLE; // start after head clones
+
+  function applyTransform(index, animate = true) {
+    track.style.transition = animate ? `transform ${DURATION}ms cubic-bezier(0.4,0,0.2,1)` : 'none';
+    track.style.transform  = `translateX(-${index * stepWidth()}px)`;
+  }
+
+  function slide(direction) {
+    if (isAnimating) return;
+    isAnimating = true;
+
+    currentIndex += direction;
+    applyTransform(currentIndex);
+
+    track.addEventListener('transitionend', function onEnd() {
+      track.removeEventListener('transitionend', onEnd);
+
+      const origCount = track.children.length - VISIBLE * 2;
+
+      // Jumped past real end → snap to real start
+      if (currentIndex >= origCount + VISIBLE) {
+        currentIndex = VISIBLE;
+        applyTransform(currentIndex, false);
+      }
+      // Jumped before real start → snap to real end
+      if (currentIndex < VISIBLE) {
+        currentIndex = origCount + VISIBLE - 1;
+        applyTransform(currentIndex, false);
+      }
+
+      isAnimating = false;
+    });
+  }
+
+  // Build clones, set initial position, wire buttons
+  buildClones();
+  resetToStart();
+
+  wrapper.querySelector('.carousel-btn.prev')?.addEventListener('click', () => slide(-1));
+  wrapper.querySelector('.carousel-btn.next')?.addEventListener('click', () => slide(1));
+
+  // Rebuild on resize
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      buildClones();
+      resetToStart();
+    }, 200);
+  });
+
+  // Auto-advance every 5 s
+  let autoplay = setInterval(() => slide(1), 5000);
+  wrapper.addEventListener('mouseenter', () => clearInterval(autoplay));
+  wrapper.addEventListener('mouseleave', () => { autoplay = setInterval(() => slide(1), 5000); });
+
+  // Touch / swipe support
+  let touchStartX = 0;
+  viewport.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  viewport.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) slide(diff > 0 ? 1 : -1);
+  });
 }
 
+// ── GitHub helpers ────────────────────────────────────────────────────────────
 function formatUpdatedLabel(dateString) {
   if (!dateString) return 'recently';
   const parsed = new Date(dateString);
   return Number.isNaN(parsed.getTime())
-    ? 'recently'
-    : parsed.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+      ? 'recently'
+      : parsed.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 }
 
 function buildLanguageList(primaryLanguage, languages = []) {
   const combined = [...languages];
   if (primaryLanguage && !combined.includes(primaryLanguage)) combined.unshift(primaryLanguage);
-
   const unique = [];
-  combined.forEach(item => {
-    if (item && !unique.includes(item)) unique.push(item);
-  });
-
+  combined.forEach(item => { if (item && !unique.includes(item)) unique.push(item); });
   return unique.slice(0, 6);
 }
 
 async function fetchLanguages(languagesUrl) {
   if (!languagesUrl) return [];
   try {
-    const res = await fetch(languagesUrl, {
-      headers: { Accept: 'application/vnd.github+json' },
-    });
+    const res = await fetch(languagesUrl, { headers: { Accept: 'application/vnd.github+json' } });
     if (!res.ok) return [];
     const data = await res.json();
     return Object.keys(data).sort((a, b) => data[b] - data[a]);
-  } catch (error) {
-    console.error(error);
-    return [];
-  }
+  } catch { return []; }
 }
 
-// Fetch more than you need, then filter down
 async function fetchRepos(username, perPage = 30) {
   const url = `https://api.github.com/users/${username}/repos?sort=updated&per_page=${perPage}&type=owner`;
-  const response = await fetch(url, {
-    headers: { Accept: 'application/vnd.github+json' },
-  });
-
+  const response = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
   if (!response.ok) throw new Error('Unable to fetch repos');
-
   const repos = await response.json();
   return repos.filter(repo => !repo.archived && !repo.fork);
 }
@@ -120,14 +205,14 @@ async function enrichRepo(repo, username) {
 
 function createProjectCard(repo) {
   const card = document.createElement('div');
-  card.classList.add('project-card', 'reveal');
+  card.classList.add('project-card');
 
-  const owner = repo.owner || 'Aaron-2005';
-  const liveLink = repo.homepage && repo.homepage.trim() !== '' ? repo.homepage : null;
+  const owner        = repo.owner || 'Aaron-2005';
+  const liveLink     = repo.homepage?.trim() || null;
   const updatedLabel = formatUpdatedLabel(repo.updated_at);
   const previewImage = repo.image || `https://opengraph.githubassets.com/1/${owner}/${repo.name}`;
-  const tags = (repo.languages && repo.languages.length ? repo.languages : [repo.language || 'Multi-lang']).slice(0, 6);
-  const tagsMarkup = tags.map(tag => `<span class="tag-chip">${tag}</span>`).join('');
+  const tags         = (repo.languages?.length ? repo.languages : [repo.language || 'Multi-lang']).slice(0, 6);
+  const tagsMarkup   = tags.map(tag => `<span class="tag-chip">${tag}</span>`).join('');
 
   card.innerHTML = `
     <div class="project-media">
@@ -138,10 +223,8 @@ function createProjectCard(repo) {
         <h3>${repo.name}</h3>
         <span class="project-updated">Updated ${updatedLabel}</span>
       </div>
-      <p class="project-desc">${repo.description || 'No description available yet.'}</p>
-      <div class="project-tags">
-        ${tagsMarkup}
-      </div>
+      <p class="project-desc">${repo.description}</p>
+      <div class="project-tags">${tagsMarkup}</div>
       <div class="project-actions">
         <a href="${repo.html_url}" target="_blank" class="btn ghost" rel="noreferrer">View repo</a>
         ${liveLink ? `<a href="${liveLink}" target="_blank" class="btn primary" rel="noreferrer">Live link</a>` : ''}
@@ -151,67 +234,15 @@ function createProjectCard(repo) {
   return card;
 }
 
-async function loadGitHubProjects(revealObserver) {
-  const container = document.getElementById('projects-list');
-  if (!container) return;
-
-  renderProjectSkeletons(container, 4);
-
-  try {
-    const username = 'Aaron-2005';
-
-    // 👇 Put your favourite repos here (exact names), in the order you want them shown.
-    // If you leave it empty, it will just show your 4 most recently updated repos.
-    const featured = [
-      // 'PortfolioWebsite',
-      // 'your-platformer-repo',
-      // 'your-hpc-repo',
-      // 'another-repo'
-    ];
-
-    const raw = await fetchRepos(username, 50);
-
-    let selected;
-    if (featured.length) {
-      const byName = new Map(raw.map(r => [r.name.toLowerCase(), r]));
-      selected = featured
-        .map(name => byName.get(String(name).toLowerCase()))
-        .filter(Boolean);
-    } else {
-      selected = raw.slice(0, 4);
-    }
-
-    // Limit to 4 cards
-    selected = selected.slice(0, 4);
-
-    // Enrich (languages, image, etc.)
-    const repos = await Promise.all(selected.map(repo => enrichRepo(repo, username)));
-
-    if (!repos.length) {
-      container.innerHTML = '<p class="muted">No projects to show right now.</p>';
-      return;
-    }
-
-    container.innerHTML = '';
-    repos.forEach(repo => {
-      const card = createProjectCard(repo);
-      container.appendChild(card);
-      if (revealObserver) revealObserver.observe(card);
-      else card.classList.add('visible'); // fallback show
-    });
-  } catch (error) {
-    container.innerHTML = `
-      <div class="project-card error-card">
-        <h3>Could not load recent projects</h3>
-        <p class="muted">Please check your connection or GitHub rate limits and try again.</p>
-      </div>
-    `;
-    console.error(error);
-  }
-}
-
+// ── Boot ──────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   initSmoothScroll();
-  const revealObserver = initRevealAnimations();
-  loadGitHubProjects(revealObserver);
+  initRevealAnimations();
+
+  // Carousel initialises on the static cards already in the DOM,
+  // then optionally enriches with live GitHub data.
+  initCarousel();
+
+  // Optionally refresh cards from GitHub (uncomment + fill featured list to use)
+  // loadGitHubProjects();
 });
